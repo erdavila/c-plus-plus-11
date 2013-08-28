@@ -81,7 +81,7 @@ int main() {
 	cout <<  "1101_0100__0011_0001"_b << endl;
 	cout << endl;
 	
-	cout << string("abc\0").length() << endl;
-	cout << "abc\0"_s.length() << endl;
+	cout << string("abc\0def").length() << endl;
+	cout << "abc\0def"_s.length() << endl;
 	cout << endl;
 }
