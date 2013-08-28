@@ -16,6 +16,8 @@ For the samples without a Makefile, compile with the command:
 and generate a string representation of them.
 * `unified-assignment.cpp` - An example for the unified assignment that C++11 enables
 as a replacement for the copy-and-swap idiom (See http://en.wikibooks.org/wiki/More_C++_Idioms/Copy-and-swap).
+* `user-defined-literals.cpp` - Includes the definition of a compile-time binary
+number literal.
 
 
 References
