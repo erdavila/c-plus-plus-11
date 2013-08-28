@@ -12,5 +12,7 @@ For the samples without a Makefile, compile with the command:
  g++ -Wall -std=c++11 <INPUT.cpp> -o <OUTPUT>
 ```
 
+* type-names/ - Exercises template specialization to detect every kind of type
+and generate a string representation of them.
 * unified-assignment.cpp - An example for the unified assignment that C++11 enables
 as a replacement for the copy-and-swap idiom (See http://en.wikibooks.org/wiki/More_C++_Idioms/Copy-and-swap).
