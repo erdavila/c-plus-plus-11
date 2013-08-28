@@ -2,12 +2,18 @@
 #include <string>
 
 
-template <char B> struct not_a_binary_digit;
-template <unsigned long long N, char...BB>         struct binary_literal;
-template <unsigned long long N>                    struct binary_literal<N>             { enum { value = N }; };
-template <unsigned long long N, char...BB>         struct binary_literal<N, '0', BB...> { enum { value = binary_literal<(N << 1) | 0, BB...>::value }; };
-template <unsigned long long N, char...BB>         struct binary_literal<N, '1', BB...> { enum { value = binary_literal<(N << 1) | 1, BB...>::value }; };
-template <unsigned long long N, char B, char...BB> struct binary_literal<N, B, BB...>   { enum { value = not_a_binary_digit<B>::value }; };
+template <unsigned long long N, char...BB>
+struct binary_literal {
+	enum { value = N };
+};
+
+template <unsigned long long N, char B, char...BB>
+struct binary_literal<N, B, BB...> {
+	static_assert(B == '0' || B == '1', "invalid binary digit");
+	enum {
+		value = binary_literal<(N << 1) | (B - '0'), BB...>::value
+	};
+};
 
 template <char...BB> constexpr          int       operator"" _b()    { return binary_literal<0, BB...>::value; }
 template <char...BB> constexpr unsigned int       operator"" _bU()   { return binary_literal<0, BB...>::value; }
@@ -46,23 +52,30 @@ std::string operator"" _s(const char* s, size_t sz) {
 using namespace std;
 
 int main() {
-	cout <<    0_b << endl;
-	cout <<    1_b << endl;
-	cout <<   10_b << endl;
-	cout <<   11_b << endl;
-	cout << 0100_b << endl;
-	cout << 0101_b << endl;
-	cout << 0110_b << endl;
-	cout << 0111_b << endl;
-	cout << 1000_b << endl;
-	cout << 1001_b << endl;
-	cout << 1010_b << endl;
-	cout << 1011_b << endl;
-	cout << 1100_b << endl;
-	cout << 1101_b << endl;
-	cout << 1110_b << endl;
-	cout << 1111_b << endl;
-	cout << endl;
+	cout <<           0_b << endl;
+	cout <<           1_b << endl;
+	cout <<          10_b << endl;
+	cout <<          11_b << endl;
+	cout <<        0100_b << endl;
+	cout <<        0101_b << endl;
+	cout <<        0110_b << endl;
+	cout <<        0111_b << endl;
+	cout <<        1000_b << endl;
+	cout <<        1001_b << endl;
+	cout <<        1010_b << endl;
+	cout <<        1011_b << endl;
+	cout <<        1100_b << endl;
+	cout <<        1101_b << endl;
+	cout <<        1110_b << endl;
+	cout <<        1111_b << endl;
+	cout <<       10000_b << endl;
+	cout <<      100000_b << endl;
+	cout <<     1000000_b << endl;
+	cout <<    10000000_b << endl;
+	cout <<   100000000_b << endl;
+	cout <<  1000000000_b << endl;
+	cout << 10000000000_b << endl;
+	cout         <<          endl;
 	
 	cout << -"1101_0100__0011_0001"_b << endl;
 	cout <<  "1101_0100__0011_0001"_b << endl;
