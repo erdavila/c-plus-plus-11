@@ -12,6 +12,9 @@ For the samples without a Makefile, compile with the command:
  g++ -Wall -std=c++11 <INPUT.cpp> -o <OUTPUT>
 ```
 
+* `SI/` - Types and operations on physical units - A toy-project to practice
+meta-programming with C++ templates. (You should not use this in serious applications!
+I recommend using Boost.Units library instead.)
 * `type-names/` - Exercises template specialization to detect every kind of type
 and generate a string representation of them.
 * `unified-assignment.cpp` - An example for the unified assignment that C++11 enables
