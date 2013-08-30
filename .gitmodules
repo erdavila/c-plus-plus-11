@@ -1,3 +1,6 @@
 [submodule "SI"]
 	path = SI
 	url = https://github.com/erdavila/SI.git
+[submodule "nosj-cpp"]
+	path = nosj-cpp
+	url = https://github.com/erdavila/nosj-cpp.git
