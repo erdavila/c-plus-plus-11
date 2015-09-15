@@ -130,7 +130,153 @@ namespace twoArgs {
 }
 
 
+namespace threeArgs {
+	namespace argsByVal {
+		std::string function(int i, char c, bool b) {
+			std::stringstream ss;
+			ss << (b ? '-' : '+') << i << c;
+			return ss.str();
+		}
+
+		void test_1_1_1() {
+			auto curriedFunction = curry::curry(function);
+			auto curriedFunction2 = curriedFunction(7);
+			auto curriedFunction3 = curriedFunction2('!');
+			auto result = curriedFunction3(true);
+			assert(result == "-7!");
+		}
+
+		void test_1_2() {
+			auto curriedFunction = curry::curry(function);
+			auto curriedFunction2 = curriedFunction(7);
+			auto result = curriedFunction2('!', true);
+			assert(result == "-7!");
+		}
+
+		void test_2_1() {
+			auto curriedFunction = curry::curry(function);
+			auto curriedFunction2 = curriedFunction(7, '!');
+			auto result = curriedFunction2(true);
+			assert(result == "-7!");
+		}
+
+		void test_3() {
+			auto curriedFunction = curry::curry(function);
+			auto result = curriedFunction(7, '!', true);
+			assert(result == "-7!");
+		}
+
+		void test() {
+			test_1_1_1();
+			test_1_2();
+			test_2_1();
+			test_3();
+		}
+	}
+
+	namespace argsByRef {
+		std::string str;
+
+		std::string& function(int& i, char& c, bool& b) {
+			std::stringstream ss;
+			ss << (b ? '-' : '+') << i << c;
+			i++;
+			c = '?';
+			b = !b;
+			str = ss.str();
+			return str;
+		}
+
+		void test_1_1_1() {
+			auto curriedFunction = curry::curry(function);
+
+			int i = -1;
+			auto curriedFunction2 = curriedFunction(i);
+
+			char c = '@';
+			auto curriedFunction3 = curriedFunction2(c);
+
+			i = 7;
+			c = '!';
+			bool b = true;
+			auto& result = curriedFunction3(b);
+
+			assert(i == 8);
+			assert(c == '?');
+			assert(b == false);
+			assert(result == "-7!");
+			assert(&result == &str);
+		}
+
+		void test_1_2() {
+			auto curriedFunction = curry::curry(function);
+
+			int i = -1;
+			auto curriedFunction2 = curriedFunction(i);
+
+			i = 7;
+			char c = '!';
+			bool b = true;
+			auto& result = curriedFunction2(c, b);
+
+			assert(i == 8);
+			assert(c == '?');
+			assert(b == false);
+			assert(result == "-7!");
+			assert(&result == &str);
+		}
+
+		void test_2_1() {
+			auto curriedFunction = curry::curry(function);
+
+			int i = -1;
+			char c = '@';
+			auto curriedFunction2 = curriedFunction(i, c);
+
+			i = 7;
+			c = '!';
+			bool b = true;
+			auto& result = curriedFunction2(b);
+
+			assert(i == 8);
+			assert(c == '?');
+			assert(b == false);
+			assert(result == "-7!");
+			assert(&result == &str);
+		}
+
+		void test_3() {
+			auto curriedFunction = curry::curry(function);
+
+			int i = 7;
+			char c = '!';
+			bool b = true;
+			auto& result = curriedFunction(i, c, b);
+
+			assert(i == 8);
+			assert(c == '?');
+			assert(b == false);
+			assert(result == "-7!");
+			assert(&result == &str);
+		}
+
+		void test() {
+			test_1_1_1();
+			test_1_2();
+			test_2_1();
+			test_3();
+		}
+	}
+
+	void test() {
+		argsByVal::test();
+		argsByRef::test();
+	}
+}
+
+
 int main() {
 	oneArg::test();
 	twoArgs::test();
+	threeArgs::test();
 }

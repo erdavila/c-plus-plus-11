@@ -2,6 +2,7 @@
 #define __CURRY_HPP__
 
 #include <functional>
+#include <type_traits>
 
 namespace curry {
 
@@ -26,9 +27,40 @@ namespace curry {
 		}
 	};
 
-	// Appliable to 2..N arguments of types (NextArg, AfterNextArg, RestArgs...)
 	template <typename Target, typename Return, typename BoundArg, typename NextArg, typename AfterNextArg, typename... RestArgs>
-	class BoundFunction<Target, Return(BoundArg, NextArg, AfterNextArg, RestArgs...)>;
+	class BoundFunction<Target, Return(BoundArg, NextArg, AfterNextArg, RestArgs...)> {
+	private:
+		using This = BoundFunction<Target, Return(BoundArg, NextArg, AfterNextArg, RestArgs...)>;
+
+		// Appliable to 3..N arguments of types (BoundArg, NextArg, AfterNextArg, RestArgs...)
+		Target target;
+
+		BoundArg boundArg;
+	public:
+		BoundFunction(const Target& target, BoundArg boundArg)
+			: target(target), boundArg(boundArg)
+			{}
+
+		// Application to 1 argument
+		auto operator()(NextArg nextArg) const {
+			return BoundFunction<This, Return(NextArg, AfterNextArg, RestArgs...)>(*this, nextArg);
+		}
+
+		// Application to 2..N-2 arguments
+		template <typename... OtherArgs>
+		auto operator()(NextArg nextArg, AfterNextArg afterNextArg, OtherArgs&&... otherArgs) const
+			-> typename std::enable_if<sizeof...(OtherArgs) < sizeof...(RestArgs),
+			     decltype(this->operator()(nextArg)(afterNextArg, std::forward<OtherArgs>(otherArgs)...))
+			   >::type
+		{
+			return        this->operator()(nextArg)(afterNextArg, std::forward<OtherArgs>(otherArgs)...);
+		}
+
+		// Application to N-1 arguments
+		Return operator()(NextArg nextArg, AfterNextArg afterNextArg, RestArgs... restArgs) const {
+			return target(boundArg, nextArg, afterNextArg, restArgs...);
+		}
+	};
 
 
 	template <typename>
