@@ -4,7 +4,7 @@ using namespace std;
 
 
 struct Stats;
-Stats* stats = 0;
+Stats* stats = nullptr;
 
 struct Stats {
 	Stats(const char* class_, const char* function) {
@@ -12,7 +12,7 @@ struct Stats {
 		stats = this;
 	}
 	~Stats() {
-		stats = 0;
+		stats = nullptr;
 		cout << endl;
 	}
 	void defaultConstructor() { cout << "Default constructor" << endl; }
