@@ -1,4 +1,4 @@
-CXXFLAGS =	-O2 -g -Wall -fmessage-length=0 -std=c++11
+CXXFLAGS =	-O2 -g -Wall -fmessage-length=0 -std=c++1y
 
 OBJS =		perfect-forwarding.o
 

@@ -1,6 +1,3 @@
-#define __cplusplus 201103L
-#define __GXX_EXPERIMENTAL_CXX0X__ 1
-
 #include <cassert>
 #include <iostream>
 #include <string>
@@ -31,8 +28,8 @@ public:
 	C(const char* name) : name(name) {}
 };
 
-Result::Method calledFunc(const C&) { return Result::Method::VAL; }
-Result::Method calledFunc(C&)       { return Result::Method::REF; }
+Result::Method overloadedFunction(const C&) { return Result::Method::VAL; }
+Result::Method overloadedFunction(C&)       { return Result::Method::REF; }
 
 
 template <typename T> struct type;
@@ -43,15 +40,16 @@ template <typename T> struct type<const T> { static string name() { return "cons
 
 
 template <typename T>
-Result testForwarding(T&& arg) {
+Result forwardingFunction(T&& arg) {
 	string deducedTemplateArg = type<T>::name();
 	string rvalueRefSolvedAs = type<T&&>::name();
-	Result::Method method = calledFunc(forward<T>(arg));
+	Result::Method method = overloadedFunction(forward<T>(arg));
 
-	cout << "Forwarding " << arg.name << endl;
-	cout << "\tDeduced: T = " << deducedTemplateArg << endl;
-	cout << "\tT&& = " << rvalueRefSolvedAs << endl;
-	cout << "\tcalled " << (method == Result::Method::VAL ? "VAL" : "REF") << " overload" << endl;
+	cout << "Calling forwardingFunction(T&& arg) with: " << arg.name << endl;
+	cout << "\tDeduced T = " << deducedTemplateArg << endl;
+	cout << "\tType of arg is T&& = " << deducedTemplateArg << " && = " << rvalueRefSolvedAs << endl;
+	cout << "\tForwarded to: overloadedFunction(" << (method == Result::Method::VAL ? "const C&" : "C&") << ")" << endl;
+	cout << endl;
 
 	return {deducedTemplateArg, rvalueRefSolvedAs, method};
 }
@@ -72,28 +70,21 @@ int main() {
 	C _varConstRVRef = "const C&& variable"; const C&& varConstRVRef = move(_varConstRVRef);
 
 
-	assert(testForwarding(C("C literal")) == Result("C", "C&&", Result::Method::VAL));
+	assert(forwardingFunction(C("C literal")) == Result("C", "C&&", Result::Method::VAL));
 
-	assert(testForwarding(var)           == Result(      "C&",       "C&", Result::Method::REF));
-	assert(testForwarding(varRef)        == Result(      "C&",       "C&", Result::Method::REF));
-	assert(testForwarding(varRVRef)      == Result(      "C&",       "C&", Result::Method::REF));
-	assert(testForwarding(varConst)      == Result("const C&", "const C&", Result::Method::VAL));
-	assert(testForwarding(varConstRef)   == Result("const C&", "const C&", Result::Method::VAL));
-	assert(testForwarding(varConstRVRef) == Result("const C&", "const C&", Result::Method::VAL));
+	assert(forwardingFunction(var)           == Result(      "C&",       "C&", Result::Method::REF));
+	assert(forwardingFunction(varRef)        == Result(      "C&",       "C&", Result::Method::REF));
+	assert(forwardingFunction(varRVRef)      == Result(      "C&",       "C&", Result::Method::REF));
+	assert(forwardingFunction(varConst)      == Result("const C&", "const C&", Result::Method::VAL));
+	assert(forwardingFunction(varConstRef)   == Result("const C&", "const C&", Result::Method::VAL));
+	assert(forwardingFunction(varConstRVRef) == Result("const C&", "const C&", Result::Method::VAL));
 
-	assert(testForwarding(func())           == Result(      "C" ,       "C&&", Result::Method::VAL));
-	assert(testForwarding(funcRef())        == Result(      "C&",       "C&" , Result::Method::REF));
-	assert(testForwarding(funcRVRef())      == Result(      "C" ,       "C&&", Result::Method::VAL));
-	assert(testForwarding(funcConst())      == Result("const C" , "const C&&", Result::Method::VAL));
-	assert(testForwarding(funcConstRef())   == Result("const C&", "const C&" , Result::Method::VAL));
-	assert(testForwarding(funcConstRVRef()) == Result("const C" , "const C&&", Result::Method::VAL));
-
-	/*
-	Result r = testForwarding(funcConstRVRef());
-	cout << r.deducedTemplateArg << endl;
-	cout << r.rvalueRefSolvedAs << endl;
-	cout << (r.method == Result::Method::VAL ? "VAL" : "REF")<< endl;
-	*/
+	assert(forwardingFunction(func())           == Result(      "C" ,       "C&&", Result::Method::VAL));
+	assert(forwardingFunction(funcRef())        == Result(      "C&",       "C&" , Result::Method::REF));
+	assert(forwardingFunction(funcRVRef())      == Result(      "C" ,       "C&&", Result::Method::VAL));
+	assert(forwardingFunction(funcConst())      == Result("const C" , "const C&&", Result::Method::VAL));
+	assert(forwardingFunction(funcConstRef())   == Result("const C&", "const C&" , Result::Method::VAL));
+	assert(forwardingFunction(funcConstRVRef()) == Result("const C" , "const C&&", Result::Method::VAL));
 
 	cout << "OK" << endl;
 }
