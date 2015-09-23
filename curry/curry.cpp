@@ -565,9 +565,117 @@ namespace fourArgs {
 }
 
 
+namespace types {
+	std::string function(int i, char c, bool b) {
+		std::stringstream ss;
+		ss << (b ? '-' : '+') << i << c;
+		return ss.str();
+	}
+
+	namespace std_function {
+		void test() {
+			std::function<std::string(int, char, bool)> func(function);
+			auto curriedFunction = curry::curry(func);
+			auto curriedFunction2 = curriedFunction(7);
+			auto curriedFunction3 = curriedFunction2('!');
+			auto result = curriedFunction3(true);
+			assert(result == "-7!");
+		}
+	}
+
+	namespace memberFunction {
+		struct Class {
+			auto member(int i, char c, bool b) { return function(i, c, b); }
+			auto memberConst(int i, char c, bool b) const { return function(i, c, b); }
+			auto memberVolatile(int i, char c, bool b) volatile { return function(i, c, b); }
+			auto memberConstVolatile(int i, char c, bool b) const volatile { return function(i, c, b); }
+		};
+
+		Class instance;
+
+		void testMember() {
+			auto curriedFunction = curry::curry(&Class::member);
+			auto curriedFunction2 = curriedFunction(instance);
+			auto curriedFunction3 = curriedFunction2(7);
+			auto curriedFunction4 = curriedFunction3('!');
+			auto result = curriedFunction4(true);
+			assert(result == "-7!");
+		}
+
+		void testMemberConst() {
+			auto curriedFunction = curry::curry(&Class::memberConst);
+			auto curriedFunction2 = curriedFunction(instance);
+			auto curriedFunction3 = curriedFunction2(7);
+			auto curriedFunction4 = curriedFunction3('!');
+			auto result = curriedFunction4(true);
+			assert(result == "-7!");
+		}
+
+		void testMemberVolatile() {
+			auto curriedFunction = curry::curry(&Class::memberVolatile);
+			auto curriedFunction2 = curriedFunction(instance);
+			auto curriedFunction3 = curriedFunction2(7);
+			auto curriedFunction4 = curriedFunction3('!');
+			auto result = curriedFunction4(true);
+			assert(result == "-7!");
+		}
+
+		void testMemberConstVolatile() {
+			auto curriedFunction = curry::curry(&Class::memberConstVolatile);
+			auto curriedFunction2 = curriedFunction(instance);
+			auto curriedFunction3 = curriedFunction2(7);
+			auto curriedFunction4 = curriedFunction3('!');
+			auto result = curriedFunction4(true);
+			assert(result == "-7!");
+		}
+
+		void test() {
+			testMember();
+			testMemberConst();
+			testMemberVolatile();
+			testMemberConstVolatile();
+		}
+	}
+
+	namespace lambda {
+		void test() {
+			auto lambda = [](int i, char c, bool b) { return function(i, c, b); };
+			auto curriedFunction = curry::curry<std::string(int, char, bool)>(lambda);
+			auto curriedFunction2 = curriedFunction(7);
+			auto curriedFunction3 = curriedFunction2('!');
+			auto result = curriedFunction3(true);
+			assert(result == "-7!");
+		}
+	}
+
+	namespace functionObject {
+		struct Class {
+			auto operator()(int i, char c, bool b) { return function(i, c, b); }
+		};
+
+		void test() {
+			Class instance;
+			auto curriedFunction = curry::curry<std::string(int, char, bool)>(instance);
+			auto curriedFunction2 = curriedFunction(7);
+			auto curriedFunction3 = curriedFunction2('!');
+			auto result = curriedFunction3(true);
+			assert(result == "-7!");
+		}
+	}
+
+	void test() {
+		std_function::test();
+		memberFunction::test();
+		lambda::test();
+		functionObject::test();
+	}
+}
+
+
 int main() {
 	oneArg::test();
 	twoArgs::test();
 	threeArgs::test();
 	fourArgs::test();
+	types::test();
 }

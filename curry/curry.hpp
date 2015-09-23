@@ -69,13 +69,14 @@ namespace curry {
 	template <typename Return, typename Arg>
 	class CurriedFunction<Return(Arg)> {
 	private:
-		using Function = Return(Arg);
-		using Target = std::function<Function>;
+		using Signature = Return(Arg);
+		using Function = std::function<Signature>;
 
 		// Appliable to 1 argument of type (Arg)
-		Target target;
+		Function target;
 	public:
-		explicit CurriedFunction(Function function) : target(function) {}
+		explicit CurriedFunction(const Function& function) : target(function) {}
+		explicit CurriedFunction(Function& function) : target(std::move(function)) {}
 
 		// Application to 1 argument
 		Return operator()(const Arg& arg) const {
@@ -86,18 +87,19 @@ namespace curry {
 	template <typename Return, typename Arg1, typename Arg2, typename... RestArgs>
 	class CurriedFunction<Return(Arg1, Arg2, RestArgs...)> {
 	private:
-		using Function = Return(Arg1, Arg2, RestArgs...);
-		using Target = std::function<Function>;
-		using This = CurriedFunction<Function>;
+		using Signature = Return(Arg1, Arg2, RestArgs...);
+		using Function = std::function<Signature>;
+		using This = CurriedFunction<Signature>;
 
 		// Appliable to 2..N arguments of types (Arg1, Arg2, RestArgs...)
-		Target target;
+		Function target;
 	public:
-		explicit CurriedFunction(Function function) : target(function) {}
+		explicit CurriedFunction(const Function& function) : target(function) {}
+		explicit CurriedFunction(Function& function) : target(std::move(function)) {}
 
 		// Application to 1 argument
 		auto operator()(Arg1 arg1) const {
-			return BoundFunction<This, Function>(*this, arg1);
+			return BoundFunction<This, Signature>(*this, arg1);
 		}
 
 		// Application to 2..N-1 arguments
@@ -117,9 +119,50 @@ namespace curry {
 	};
 
 
-	template <typename Function>
-	auto curry(Function* function) {
-		return CurriedFunction<Function>(function);
+	template <typename Return, typename... Args>
+	auto curry(std::function<Return(Args...)>& function) {
+		return CurriedFunction<Return(Args...)>(std::move(function));
+	}
+
+	template <typename Return, typename... Args>
+	auto curry(const std::function<Return(Args...)>& function) {
+		return CurriedFunction<Return(Args...)>(std::move(function));
+	}
+
+	template <typename Return, typename... Args>
+	auto curry(Return(*func)(Args...)) {
+		std::function<Return(Args...)> function = func;
+		return curry(std::move(function));
+	}
+
+	template <typename Return, typename Class, typename... Args>
+	auto curry(Return(Class::*member)(Args...)) {
+		std::function<Return(Class&, Args...)> function = member;
+		return curry(std::move(function));
+	}
+
+	template <typename Return, typename Class, typename... Args>
+	auto curry(Return(Class::*member)(Args...) const) {
+		std::function<Return(Class&, Args...)> function = member;
+		return curry(std::move(function));
+	}
+
+	template <typename Return, typename Class, typename... Args>
+	auto curry(Return(Class::*member)(Args...) volatile) {
+		std::function<Return(Class&, Args...)> function = member;
+		return curry(std::move(function));
+	}
+
+	template <typename Return, typename Class, typename... Args>
+	auto curry(Return(Class::*member)(Args...) const volatile) {
+		std::function<Return(Class&, Args...)> function = member;
+		return curry(std::move(function));
+	}
+
+	template <typename Signature, typename Type>
+	auto curry(Type value) {
+		std::function<Signature> function = value;
+		return curry(std::move(function));
 	}
 }
 
