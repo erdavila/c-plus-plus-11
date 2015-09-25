@@ -663,11 +663,35 @@ namespace types {
 		}
 	}
 
+	namespace constructor {
+		struct Class {
+			std::string result;
+			Class(int i, char c, bool b)
+				: result(std::move(function(i, c, b)))
+			{}
+
+			Class(Class&& that)
+				: result(std::move(that.result))
+			{}
+
+			Class(const Class&) = delete;
+		};
+
+		void test() {
+			auto curriedFunction = curry::curry<Class(int, char, bool)>();
+			auto curriedFunction2 = curriedFunction(7);
+			auto curriedFunction3 = curriedFunction2('!');
+			auto instance = std::move(curriedFunction3(true));
+			assert(instance.result == "-7!");
+		}
+	}
+
 	void test() {
 		std_function::test();
 		memberFunction::test();
 		lambda::test();
 		functionObject::test();
+		constructor::test();
 	}
 }
 

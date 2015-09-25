@@ -120,13 +120,13 @@ namespace curry {
 
 
 	template <typename Return, typename... Args>
-	auto curry(std::function<Return(Args...)>& function) {
+	auto curry(std::function<Return(Args...)>&& function) {
 		return CurriedFunction<Return(Args...)>(std::move(function));
 	}
 
 	template <typename Return, typename... Args>
 	auto curry(const std::function<Return(Args...)>& function) {
-		return CurriedFunction<Return(Args...)>(std::move(function));
+		return CurriedFunction<Return(Args...)>(function);
 	}
 
 	template <typename Return, typename... Args>
@@ -162,6 +162,24 @@ namespace curry {
 	template <typename Signature, typename Type>
 	auto curry(Type value) {
 		std::function<Signature> function = value;
+		return curry(std::move(function));
+	}
+
+
+	template <typename>
+	struct ConstructorProxy;
+
+	template <typename Return, typename... Args>
+	struct ConstructorProxy<Return(Args...)> {
+		Return operator()(Args&&... args) const {
+			return std::move(Return(std::forward<Args>(args)...));
+		}
+	};
+
+	template <typename Signature>
+	auto curry() {
+		ConstructorProxy<Signature> proxy;
+		std::function<Signature> function = proxy;
 		return curry(std::move(function));
 	}
 }
