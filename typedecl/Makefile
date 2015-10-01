@@ -1,4 +1,4 @@
-MAIN_TARGET := array_decl
+MAIN_TARGET := typedecl
 _UNAME := $(shell uname -o)
 
 ifeq ($(_UNAME), Cygwin)
