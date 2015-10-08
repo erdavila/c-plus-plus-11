@@ -2,29 +2,37 @@
 #define COMPILE_TIME_STRINGS_HPP_
 
 #include <string>
+#include <type_traits>
 
 
 namespace ctstring {
 
 
-template <char...>
+template <typename Char, Char...>
 struct ctstring_impl;
 
-template <>
-struct ctstring_impl<> {
+template <typename Char>
+struct ctstring_impl<Char> {
+	using char_type = Char;
+	using string_type = std::basic_string<Char>;
+
 	enum { size = 0 };
 
-	inline static std::string string() {
-		return "";
+	inline static string_type string() {
+		return {};
 	}
+
 };
 
-template <char c, char... chars>
-struct ctstring_impl<c, chars...> {
+template <typename Char, Char c, Char... chars>
+struct ctstring_impl<Char, c, chars...> {
+	using char_type = Char;
+	using string_type = std::basic_string<Char>;
+
 	enum { size = 1 + sizeof...(chars) };
 
-	inline static std::string string() {
-		return c + ctstring_impl<chars...>::string();
+	inline static string_type string() {
+		return c + ctstring_impl<Char, chars...>::string();
 	}
 };
 
@@ -32,42 +40,39 @@ struct ctstring_impl<c, chars...> {
 namespace __impl {
 
 
-	template <typename StrProvider, size_t len, char... chars>
+	template <typename StrProvider, size_t len, typename Char, char... chars>
 	struct make_ctstring {
 		using type = typename make_ctstring<StrProvider,
-										   len - 1,
-										   StrProvider::str()[len - 1],
-										   chars...
-										  >::type;
+		                                   len - 1,
+		                                   Char,
+		                                   StrProvider::str()[len - 1],
+		                                   chars...
+		                                  >::type;
 	};
 
-	template <typename StrProvider, char... chars>
-	struct make_ctstring<StrProvider, 0, chars...> {
-		using type = ctstring_impl<chars...>;
+	template <typename StrProvider, typename Char, char... chars>
+	struct make_ctstring<StrProvider, 0, Char, chars...> {
+		using type = ctstring_impl<Char, chars...>;
 	};
 
 
-	constexpr size_t str_length(const char* str) {
-		return str[0] == '\0' ? 0 : (1 + str_length(str + 1));
+	template <typename Char>
+	constexpr size_t str_length(const Char* str) {
+		return str[0] == Char(0) ? 0 : (1 + str_length(str + 1));
 	}
 
 
 	template <typename... CTStrings>
 	struct concat;
 
-	template <>
-	struct concat<> {
-		using type = ctstring_impl<>;
+	template <typename Char, Char... chars>
+	struct concat<ctstring_impl<Char, chars...>> {
+		using type = ctstring_impl<Char, chars...>;
 	};
 
-	template <char... chars>
-	struct concat<ctstring_impl<chars...>> {
-		using type = ctstring_impl<chars...>;
-	};
-
-	template <char... chars1, char... chars2, typename... CTStrings>
-	struct concat<ctstring_impl<chars1...>, ctstring_impl<chars2...>, CTStrings...> {
-		using type = typename concat<ctstring_impl<chars1..., chars2...>, CTStrings...>::type;
+	template <typename Char, Char... chars1, Char... chars2, typename... CTStrings>
+	struct concat<ctstring_impl<Char, chars1...>, ctstring_impl<Char, chars2...>, CTStrings...> {
+		using type = typename concat<ctstring_impl<Char, chars1..., chars2...>, CTStrings...>::type;
 	};
 
 
@@ -76,7 +81,8 @@ namespace __impl {
 
 template <typename StrProvider>
 using ctstring = typename __impl::make_ctstring<StrProvider,
-                                                __impl::str_length(StrProvider::str())
+                                                __impl::str_length(StrProvider::str()),
+                                                typename std::decay<decltype(StrProvider::str()[0])>::type
                                                >::type;
 
 template <typename... CTStrings>
