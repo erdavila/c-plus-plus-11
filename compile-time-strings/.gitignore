@@ -1,0 +1,7 @@
+.project
+.cproject
+.settings/
+*.o
+test-compile-time-strings
+test-compile-time-strings.exe
+test-compile-time-strings.exe.stackdump
