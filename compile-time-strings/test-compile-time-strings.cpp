@@ -26,14 +26,12 @@ struct Exclamation {
 };
 
 
-int main() {
-	using E = ctstring::ctstring<EMPTY>;
-	using H = ctstring::ctstring<Hello>;
-	using W = ctstring::ctstring<World>;
-	using HW = ctstring::concat<H, W>;
-	using X = ctstring::concat<H, W, ctstring::ctstring<Exclamation>>;
-	using C0 = ctstring::concat<>;
+using E = ctstring::ctstring<EMPTY>;
+using H = ctstring::ctstring<Hello>;
+using W = ctstring::ctstring<World>;
 
+
+void testBasics() {
 	assert(E::size == 0);
 	assert(E::string() == "");
 
@@ -42,6 +40,13 @@ int main() {
 
 	assert(W::size == 5);
 	assert(W::string() == "World");
+}
+
+
+void testConcat() {
+	using HW = ctstring::concat<H, W>;
+	using X = ctstring::concat<H, W, ctstring::ctstring<Exclamation>>;
+	using C0 = ctstring::concat<>;
 
 	assert(HW::size == 11);
 	assert(HW::string() == "Hello World");
@@ -51,4 +56,10 @@ int main() {
 
 	assert(C0::size == 0);
 	assert(C0::string() == "");
+}
+
+
+int main() {
+	testBasics();
+	testConcat();
 }
