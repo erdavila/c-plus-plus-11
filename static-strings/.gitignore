@@ -1,0 +1,7 @@
+.project
+.cproject
+.settings/
+*.o
+test-static-strings
+test-static-strings.exe
+test-static-strings.exe.stackdump

@@ -1,4 +1,4 @@
-PRJ := compile-time-strings
+PRJ := static-strings
 HPP := $(PRJ).hpp
 CPP := test-$(PRJ).cpp
 EXE := test-$(PRJ)

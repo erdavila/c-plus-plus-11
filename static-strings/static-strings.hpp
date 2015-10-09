@@ -5,14 +5,14 @@
 #include <type_traits>
 
 
-namespace ctstring {
+namespace static_string {
 
 
 template <typename Char, Char...>
-struct ctstring_impl;
+struct static_string;
 
 template <typename Char>
-struct ctstring_impl<Char> {
+struct static_string<Char> {
 	using char_type = Char;
 	using string_type = std::basic_string<Char>;
 
@@ -24,13 +24,13 @@ struct ctstring_impl<Char> {
 
 private:
 
-	template <typename C, C...> friend struct ctstring_impl;
+	template <typename C, C...> friend struct static_string;
 
 	inline static void append_to(string_type& string) {}
 };
 
 template <typename Char, Char c, Char... chars>
-struct ctstring_impl<Char, c, chars...> {
+struct static_string<Char, c, chars...> {
 	using char_type = Char;
 	using string_type = std::basic_string<Char>;
 
@@ -45,11 +45,11 @@ struct ctstring_impl<Char, c, chars...> {
 
 private:
 
-	template <typename C, C...> friend struct ctstring_impl;
+	template <typename C, C...> friend struct static_string;
 
 	inline static void append_to(string_type& string) {
 		string += c;
-		ctstring_impl<Char, chars...>::append_to(string);
+		static_string<Char, chars...>::append_to(string);
 	}
 };
 
@@ -58,18 +58,18 @@ namespace __impl {
 
 
 	template <typename StrProvider, size_t len, typename Char, char... chars>
-	struct make_ctstring {
-		using type = typename make_ctstring<StrProvider,
-		                                   len - 1,
-		                                   Char,
-		                                   StrProvider::str()[len - 1],
-		                                   chars...
-		                                  >::type;
+	struct build_from_provider {
+		using type = typename build_from_provider<StrProvider,
+		                                          len - 1,
+		                                          Char,
+		                                          StrProvider::str()[len - 1],
+		                                          chars...
+		                                         >::type;
 	};
 
 	template <typename StrProvider, typename Char, char... chars>
-	struct make_ctstring<StrProvider, 0, Char, chars...> {
-		using type = ctstring_impl<Char, chars...>;
+	struct build_from_provider<StrProvider, 0, Char, chars...> {
+		using type = static_string<Char, chars...>;
 	};
 
 
@@ -106,13 +106,13 @@ namespace __impl {
 	struct concat;
 
 	template <typename Char, Char... chars>
-	struct concat<ctstring_impl<Char, chars...>> {
-		using type = ctstring_impl<Char, chars...>;
+	struct concat<static_string<Char, chars...>> {
+		using type = static_string<Char, chars...>;
 	};
 
 	template <typename Char, Char... chars1, Char... chars2, typename... CTStrings>
-	struct concat<ctstring_impl<Char, chars1...>, ctstring_impl<Char, chars2...>, CTStrings...> {
-		using type = typename concat<ctstring_impl<Char, chars1..., chars2...>, CTStrings...>::type;
+	struct concat<static_string<Char, chars1...>, static_string<Char, chars2...>, CTStrings...> {
+		using type = typename concat<static_string<Char, chars1..., chars2...>, CTStrings...>::type;
 	};
 
 
@@ -120,10 +120,10 @@ namespace __impl {
 
 
 template <typename StrProvider, size_t len = __impl::size_for<StrProvider>::value>
-using ctstring = typename __impl::make_ctstring<StrProvider,
-                                                len,
-                                                typename std::decay<decltype(StrProvider::str()[0])>::type
-                                               >::type;
+using from_provider = typename __impl::build_from_provider<StrProvider,
+                                                           len,
+                                                           typename std::decay<decltype(StrProvider::str()[0])>::type
+                                                          >::type;
 
 template <typename... CTStrings>
 using concat = typename __impl::concat<CTStrings...>::type;
