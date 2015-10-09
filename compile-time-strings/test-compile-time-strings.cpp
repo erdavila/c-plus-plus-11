@@ -89,8 +89,28 @@ void testCharTypes() {
 }
 
 
+void testExplicitSize() {
+	struct World {
+		enum { size = 11 };
+		constexpr static const char* str() {
+			return  "Hello\0World";
+		}
+	};
+
+	using HW1 = ctstring::ctstring<World>;
+	using HW2 = ctstring::ctstring<World, 7>;
+
+	assert(HW1::size == 11);
+	assert(HW2::size == 7);
+
+	assert(HW1::string() == std::string("Hello") + '\0' + "World");
+	assert(HW2::string() == std::string("Hello") + '\0' + 'W');
+}
+
+
 int main() {
 	testBasics();
 	testConcat();
 	testCharTypes();
+	testExplicitSize();
 }

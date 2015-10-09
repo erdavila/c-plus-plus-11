@@ -73,10 +73,33 @@ namespace __impl {
 	};
 
 
-	template <typename Char>
-	constexpr size_t str_length(const Char* str) {
-		return str[0] == Char(0) ? 0 : (1 + str_length(str + 1));
-	}
+	template <typename StrProvider>
+	struct has_size {
+		using no  = char[1];
+		using yes = char[2];
+		template <typename T> static yes& test(int(*)[T::size]);  // SFINAE!
+		template <typename T> static no&  test(...);
+
+		static constexpr bool value = (sizeof(test<StrProvider>(nullptr)) == sizeof(yes));
+	};
+
+	template <typename StrProvider, bool = has_size<StrProvider>::value>
+	struct size_for;
+
+	template <typename StrProvider>
+	struct size_for<StrProvider, true> {
+		enum { value = StrProvider::size };
+	};
+
+	template <typename StrProvider>
+	struct size_for<StrProvider, false> {
+		template <typename Char>
+		static constexpr size_t str_length(const Char* str) {
+			return str[0] == Char(0) ? 0 : (1 + str_length(str + 1));
+		}
+
+		enum { value = str_length(StrProvider::str()) };
+	};
 
 
 	template <typename... CTStrings>
@@ -96,9 +119,9 @@ namespace __impl {
 } /* namespace __impl */
 
 
-template <typename StrProvider>
+template <typename StrProvider, size_t len = __impl::size_for<StrProvider>::value>
 using ctstring = typename __impl::make_ctstring<StrProvider,
-                                                __impl::str_length(StrProvider::str()),
+                                                len,
                                                 typename std::decay<decltype(StrProvider::str()[0])>::type
                                                >::type;
 
