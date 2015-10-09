@@ -22,6 +22,11 @@ struct ctstring_impl<Char> {
 		return {};
 	}
 
+private:
+
+	template <typename C, C...> friend struct ctstring_impl;
+
+	inline static void append_to(string_type& string) {}
 };
 
 template <typename Char, Char c, Char... chars>
@@ -32,7 +37,19 @@ struct ctstring_impl<Char, c, chars...> {
 	enum { size = 1 + sizeof...(chars) };
 
 	inline static string_type string() {
-		return c + ctstring_impl<Char, chars...>::string();
+		string_type result;
+		result.reserve(size);
+		append_to(result);
+		return result;
+	}
+
+private:
+
+	template <typename C, C...> friend struct ctstring_impl;
+
+	inline static void append_to(string_type& string) {
+		string += c;
+		ctstring_impl<Char, chars...>::append_to(string);
 	}
 };
 
