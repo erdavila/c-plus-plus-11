@@ -2,57 +2,54 @@
 #include <cassert>
 #include <type_traits>
 
-struct EMPTY {
-	constexpr static const char* str() {
-		return "";
-	}
-};
 
-struct Hello {
-	constexpr static const char* str() {
-		return "Hello ";
-	}
-};
+void testBuildingWithIndividualChars() {
+	using Empty = static_string::static_string<char>;
+	assert(Empty::size == 0);
+	assert(Empty::string() == "");
 
-struct World {
-	constexpr static const char* str() {
-		return "World";
-	}
-};
-
-struct Exclamation {
-	constexpr static const char* str() {
-		return "!";
-	}
-};
+	using Hello = static_string::static_string<char, 'H', 'e', 'l', 'l', 'o'>;
+	assert(Hello::size == 5);
+	assert(Hello::string() == "Hello");
+}
 
 
-using E = static_string::from_provider<EMPTY>;
-using H = static_string::from_provider<Hello>;
-using W = static_string::from_provider<World>;
+void testBuildingWithStringProviders() {
+	struct EmptyStrProvider {
+		constexpr static const char* str() {
+			return "";
+		}
+	};
+	using Empty = static_string::from_provider<EmptyStrProvider>;
+	assert(Empty::size == 0);
+	assert(Empty::string() == "");
 
-
-void testBasics() {
-	assert(E::size == 0);
-	assert(E::string() == "");
-
-	assert(H::size == 6);
-	assert(H::string() == "Hello ");
-
-	assert(W::size == 5);
-	assert(W::string() == "World");
+	struct HelloStrProvider {
+		constexpr static const char* str() {
+			return "Hello";
+		}
+	};
+	using Hello = static_string::from_provider<HelloStrProvider>;
+	assert(Hello::size == 5);
+	assert(Hello::string() == "Hello");
 }
 
 
 void testConcat() {
-	using HW = static_string::concat<H, W>;
-	using X = static_string::concat<H, W, static_string::from_provider<Exclamation>>;
+	struct EmptyStrProvider { constexpr static const char* str() { return ""; } };
+	struct WorldStrProvider { constexpr static const char* str() { return "World"; } };
 
-	assert(HW::size == 11);
-	assert(HW::string() == "Hello World");
+	using Hello = static_string::static_string<char, 'H', 'e', 'l', 'l', 'o', ' '>;
+	using Empty = static_string::from_provider<EmptyStrProvider>;
+	using World = static_string::from_provider<WorldStrProvider>;
 
-	assert(X::size == 12);
-	assert(X::string() == "Hello World!");
+	using HelloWorld1 = static_string::concat<Hello, World>;
+	assert(HelloWorld1::size == 11);
+	assert(HelloWorld1::string() == "Hello World");
+
+	using HelloWorld2 = static_string::concat<Hello, Empty, World>;
+	assert(HelloWorld2::size == 11);
+	assert(HelloWorld2::string() == "Hello World");
 }
 
 
@@ -89,7 +86,7 @@ void testCharTypes() {
 }
 
 
-void testExplicitSize() {
+void testStringProviderWithExplicitSize() {
 	struct World {
 		enum { size = 11 };
 		constexpr static const char* str() {
@@ -97,20 +94,21 @@ void testExplicitSize() {
 		}
 	};
 
-	using HW1 = static_string::from_provider<World>;
-	using HW2 = static_string::from_provider<World, 7>;
+	using HelloWorld = static_string::from_provider<World>;
+	using HelloW     = static_string::from_provider<World, 7>;
 
-	assert(HW1::size == 11);
-	assert(HW2::size == 7);
+	assert(HelloWorld::size == 11);
+	assert(    HelloW::size == 7);
 
-	assert(HW1::string() == std::string("Hello") + '\0' + "World");
-	assert(HW2::string() == std::string("Hello") + '\0' + 'W');
+	assert(HelloWorld::string() == std::string("Hello") + '\0' + "World");
+	assert(    HelloW::string() == std::string("Hello") + '\0' + 'W');
 }
 
 
 int main() {
-	testBasics();
+	testBuildingWithIndividualChars();
+	testBuildingWithStringProviders();
 	testConcat();
 	testCharTypes();
-	testExplicitSize();
+	testStringProviderWithExplicitSize();
 }
