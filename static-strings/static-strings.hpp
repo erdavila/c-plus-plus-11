@@ -17,8 +17,14 @@ namespace __impl {
 	template <size_t N, typename Char, Char x, Char... chars>
 	struct find;
 
+	template <size_t N, size_t Found, typename Char, Char x, Char... chars>
+	struct rfind;
+
 
 } /* namespace __impl */
+
+
+enum { NOT_FOUND = static_cast<size_t>(-1) };
 
 
 template <typename Char, Char...>
@@ -37,6 +43,9 @@ struct static_string<Char> {
 
 	template <Char x>
 	using find = typename __impl::find<0, Char, x>;
+
+	template <Char x>
+	using rfind = typename __impl::rfind<0, NOT_FOUND, Char, x>;
 
 private:
 
@@ -65,6 +74,9 @@ struct static_string<Char, c, chars...> {
 	template <Char x>
 	using find = typename __impl::find<0, Char, x, c, chars...>;
 
+	template <Char x>
+	using rfind = typename __impl::rfind<0, NOT_FOUND, Char, x, c, chars...>;
+
 private:
 
 	template <typename C, C...> friend struct static_string;
@@ -74,9 +86,6 @@ private:
 		static_string<Char, chars...>::append_to(string);
 	}
 };
-
-
-enum { NOT_FOUND = static_cast<size_t>(-1) };
 
 
 namespace __impl {
@@ -164,6 +173,22 @@ namespace __impl {
 	template <size_t N, typename Char, Char x, Char c, Char... chars>
 	struct find<N, Char, x, c, chars...> {
 		static constexpr size_t value = find<N + 1, Char, x, chars...>::value;
+	};
+
+
+	template <size_t N, size_t Found, typename Char, Char x>
+	struct rfind<N, Found, Char, x> {
+		static constexpr size_t value = Found;
+	};
+
+	template <size_t N, size_t Found, typename Char, Char x, Char... chars>
+	struct rfind<N, Found, Char, x, x, chars...> {
+		static constexpr size_t value = rfind<N + 1, N, Char, x, chars...>::value;
+	};
+
+	template <size_t N, size_t Found, typename Char, Char x, Char c, Char... chars>
+	struct rfind<N, Found, Char, x, c, chars...> {
+		static constexpr size_t value = rfind<N + 1, Found, Char, x, chars...>::value;
 	};
 
 

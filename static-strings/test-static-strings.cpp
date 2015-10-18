@@ -129,6 +129,18 @@ void testFind() {
 }
 
 
+void testRFind() {
+	using Empty = static_string::static_string<char>;
+	assert(Empty::rfind<'a'>::value == static_string::NOT_FOUND);
+
+	using abacab = static_string::static_string<char, 'a', 'b', 'a', 'c', 'a', 'b'>;
+	assert(abacab::rfind<'a'>::value == 4);
+	assert(abacab::rfind<'b'>::value == 5);
+	assert(abacab::rfind<'c'>::value == 3);
+	assert(abacab::rfind<'d'>::value == static_string::NOT_FOUND);
+}
+
+
 int main() {
 	testBuildingWithIndividualChars();
 	testBuildingWithStringProviders();
@@ -137,4 +149,5 @@ int main() {
 	testStringProviderWithExplicitSize();
 	testCharAt();
 	testFind();
+	testRFind();
 }
