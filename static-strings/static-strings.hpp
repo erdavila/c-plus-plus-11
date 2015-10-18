@@ -1,5 +1,5 @@
-#ifndef COMPILE_TIME_STRINGS_HPP_
-#define COMPILE_TIME_STRINGS_HPP_
+#ifndef STATIC_STRINGS_HPP_
+#define STATIC_STRINGS_HPP_
 
 #include <string>
 #include <type_traits>
@@ -75,12 +75,11 @@ namespace __impl {
 
 	template <typename StrProvider>
 	struct has_size {
-		using no  = char[1];
-		using yes = char[2];
-		template <typename T> static yes& test(int(*)[T::size]);  // SFINAE!
-		template <typename T> static no&  test(...);
+		template <size_t N> struct Check;
+		template <typename T> static constexpr bool test(Check<T::size>*) { return true; }  // SFINAE!
+		template <typename T> static constexpr bool test(...) { return false; }
 
-		static constexpr bool value = (sizeof(test<StrProvider>(nullptr)) == sizeof(yes));
+		static constexpr bool value = test<StrProvider>(nullptr);
 	};
 
 	template <typename StrProvider, bool = has_size<StrProvider>::value>
@@ -102,7 +101,7 @@ namespace __impl {
 	};
 
 
-	template <typename... CTStrings>
+	template <typename... SSs>
 	struct concat;
 
 	template <typename Char, Char... chars>
@@ -110,9 +109,9 @@ namespace __impl {
 		using type = static_string<Char, chars...>;
 	};
 
-	template <typename Char, Char... chars1, Char... chars2, typename... CTStrings>
-	struct concat<static_string<Char, chars1...>, static_string<Char, chars2...>, CTStrings...> {
-		using type = typename concat<static_string<Char, chars1..., chars2...>, CTStrings...>::type;
+	template <typename Char, Char... chars1, Char... chars2, typename... SSs>
+	struct concat<static_string<Char, chars1...>, static_string<Char, chars2...>, SSs...> {
+		using type = typename concat<static_string<Char, chars1..., chars2...>, SSs...>::type;
 	};
 
 
@@ -125,11 +124,11 @@ using from_provider = typename __impl::build_from_provider<StrProvider,
                                                            typename std::decay<decltype(StrProvider::str()[0])>::type
                                                           >::type;
 
-template <typename... CTStrings>
-using concat = typename __impl::concat<CTStrings...>::type;
+template <typename... SSs>
+using concat = typename __impl::concat<SSs...>::type;
 
 
-} /* namespace ctstring */
+} /* namespace static_string */
 
 
-#endif /* COMPILE_TIME_STRINGS_HPP_ */
+#endif /* STATIC_STRINGS_HPP_ */
