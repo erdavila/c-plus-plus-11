@@ -8,6 +8,16 @@
 namespace static_string {
 
 
+namespace __impl {
+
+
+	template <size_t Index, typename Char, Char... chars>
+	struct char_at;
+
+
+} /* namespace __impl */
+
+
 template <typename Char, Char...>
 struct static_string;
 
@@ -42,6 +52,9 @@ struct static_string<Char, c, chars...> {
 		append_to(result);
 		return result;
 	}
+
+	template <size_t Index>
+	using char_at = typename __impl::char_at<Index, Char, c, chars...>;
 
 private:
 
@@ -112,6 +125,17 @@ namespace __impl {
 	template <typename Char, Char... chars1, Char... chars2, typename... SSs>
 	struct concat<static_string<Char, chars1...>, static_string<Char, chars2...>, SSs...> {
 		using type = typename concat<static_string<Char, chars1..., chars2...>, SSs...>::type;
+	};
+
+
+	template <typename Char, Char c, Char... chars>
+	struct char_at<0, Char, c, chars...> {
+		static constexpr Char value = c;
+	};
+
+	template <size_t Index, typename Char, Char c, Char... chars>
+	struct char_at<Index, Char, c, chars...>  {
+		static constexpr Char value = char_at<Index - 1, Char, chars...>::value;
 	};
 
 

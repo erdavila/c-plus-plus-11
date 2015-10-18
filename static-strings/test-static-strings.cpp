@@ -105,10 +105,23 @@ void testStringProviderWithExplicitSize() {
 }
 
 
+void testCharAt() {
+	using Hello = static_string::static_string<char, 'H', 'e', 'l', 'l', 'o'>;
+
+	assert(Hello::char_at<0>::value == 'H');
+	assert(Hello::char_at<1>::value == 'e');
+	assert(Hello::char_at<2>::value == 'l');
+	assert(Hello::char_at<3>::value == 'l');
+	assert(Hello::char_at<4>::value == 'o');
+	//(void)Hello::char_at<5>::value; // SHOULD NOT COMPILE!
+}
+
+
 int main() {
 	testBuildingWithIndividualChars();
 	testBuildingWithStringProviders();
 	testConcat();
 	testCharTypes();
 	testStringProviderWithExplicitSize();
+	testCharAt();
 }
