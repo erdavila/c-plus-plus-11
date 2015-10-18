@@ -141,6 +141,28 @@ void testRFind() {
 }
 
 
+void testSubstring() {
+	using Empty = static_string::static_string<char>;
+	assert((std::is_same<Empty::substring<0, 0>, static_string::static_string<char>>::value));
+
+	using Hello = static_string::static_string<char, 'H', 'e', 'l', 'l', 'o'>;
+	assert((std::is_same<Hello::substring<0, 0>, static_string::static_string<char>>::value));
+	assert((std::is_same<Hello::substring<0, 1>, static_string::static_string<char, 'H'>>::value));
+	assert((std::is_same<Hello::substring<0, 4>, static_string::static_string<char, 'H', 'e', 'l', 'l'>>::value));
+	assert((std::is_same<Hello::substring<0, 5>, static_string::static_string<char, 'H', 'e', 'l', 'l', 'o'>>::value));
+	assert((std::is_same<Hello::substring<1, 0>, static_string::static_string<char>>::value));
+	assert((std::is_same<Hello::substring<1, 1>, static_string::static_string<char, 'e'>>::value));
+	assert((std::is_same<Hello::substring<1, 3>, static_string::static_string<char, 'e', 'l', 'l'>>::value));
+	assert((std::is_same<Hello::substring<1, 4>, static_string::static_string<char, 'e', 'l', 'l', 'o'>>::value));
+	assert((std::is_same<Hello::substring<3, 0>, static_string::static_string<char>>::value));
+	assert((std::is_same<Hello::substring<3, 1>, static_string::static_string<char, 'l'>>::value));
+	assert((std::is_same<Hello::substring<3, 2>, static_string::static_string<char, 'l', 'o'>>::value));
+	assert((std::is_same<Hello::substring<4, 0>, static_string::static_string<char>>::value));
+	assert((std::is_same<Hello::substring<4, 1>, static_string::static_string<char, 'o'>>::value));
+	assert((std::is_same<Hello::substring<5, 0>, static_string::static_string<char>>::value));
+}
+
+
 int main() {
 	testBuildingWithIndividualChars();
 	testBuildingWithStringProviders();
@@ -150,4 +172,5 @@ int main() {
 	testCharAt();
 	testFind();
 	testRFind();
+	testSubstring();
 }

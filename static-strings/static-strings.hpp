@@ -20,6 +20,9 @@ namespace __impl {
 	template <size_t N, size_t Found, typename Char, Char x, Char... chars>
 	struct rfind;
 
+	template <size_t Pos, size_t Len, typename Char, Char... chars>
+	struct substring;
+
 
 } /* namespace __impl */
 
@@ -46,6 +49,9 @@ struct static_string<Char> {
 
 	template <Char x>
 	using rfind = typename __impl::rfind<0, NOT_FOUND, Char, x>;
+
+	template <size_t Pos, size_t Len>
+	using substring = typename __impl::substring<Pos, Len, Char>::type;
 
 private:
 
@@ -76,6 +82,9 @@ struct static_string<Char, c, chars...> {
 
 	template <Char x>
 	using rfind = typename __impl::rfind<0, NOT_FOUND, Char, x, c, chars...>;
+
+	template <size_t Pos, size_t Len>
+	using substring = typename __impl::substring<Pos, Len, Char, c, chars...>::type;
 
 private:
 
@@ -189,6 +198,31 @@ namespace __impl {
 	template <size_t N, size_t Found, typename Char, Char x, Char c, Char... chars>
 	struct rfind<N, Found, Char, x, c, chars...> {
 		static constexpr size_t value = rfind<N + 1, Found, Char, x, chars...>::value;
+	};
+
+
+	template <typename Char, Char... chars>
+	struct substring<0, 0, Char, chars...> {
+		using type = static_string<Char>;
+	};
+
+	template <typename Char, Char c, Char... chars>
+	struct substring<0, 0, Char, c, chars...> {
+		using type = static_string<Char>;
+	};
+
+	template <size_t Len, typename Char, Char c, Char... chars>
+	struct substring<0, Len, Char, c, chars...> {
+	private:
+		using first = static_string<Char, c>;
+		using rest = typename substring<0, Len - 1, Char, chars...>::type;
+	public:
+		using type = typename concat<first, rest>::type;
+	};
+
+	template <size_t Pos, size_t Len, typename Char, Char c, Char... chars>
+	struct substring<Pos, Len, Char, c, chars...> {
+		using type = typename substring<Pos - 1, Len, Char, chars...>::type;
 	};
 
 
