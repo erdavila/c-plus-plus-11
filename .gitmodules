@@ -4,3 +4,6 @@
 [submodule "nosj-cpp"]
 	path = nosj-cpp
 	url = https://github.com/erdavila/nosj-cpp.git
+[submodule "typedecl"]
+	path = typedecl
+	url = https://github.com/erdavila/typedecl.git
