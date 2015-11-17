@@ -2,6 +2,8 @@
 #include <iostream>
 #include <string>
 #include <utility>
+#include "typedecl/typedecl.hpp"
+
 using namespace std;
 
 
@@ -34,13 +36,7 @@ public:
 	const string name;
 	C(const string& name) : name(name) {}
 };
-
-
-template <typename T> struct type;
-template <>           struct type<C>       { static string name() { return "C"; } };
-template <typename T> struct type<T&>      { static string name() { return type<T>::name() + "&"; } };
-template <typename T> struct type<T&&>     { static string name() { return type<T>::name() + "&&"; } };
-template <typename T> struct type<const T> { static string name() { return "const " + type<T>::name(); } };
+DEFINE_TYPEDECL(C);
 
 
 string overloadedFunction(const C&) { return "const C&"; }
@@ -48,8 +44,8 @@ string overloadedFunction(C&)       { return "C&"; }
 
 template <typename T>
 Result forwardingFunction(T&& arg) {
-	string deducedTemplateArg = type<T>::name();
-	string rvalueRefSolvedAs = type<T&&>::name();
+	string deducedTemplateArg = typedecl<T>();
+	string rvalueRefSolvedAs = typedecl<T&&>();
 
 	string overloadCalled = overloadedFunction(forward<T>(arg));
 
@@ -66,7 +62,7 @@ enum Category { LVALUE, RVALUE };
 
 template <typename T, Category CAT>
 T returns() {
-	static C c = type<T>::name() + " " + (CAT == LVALUE ? "lvalue" : "rvalue");
+	static C c = namedecl<T>(CAT == LVALUE ? "lvalue" : "rvalue");
 	return static_cast<T>(c);
 }
 
