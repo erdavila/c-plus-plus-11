@@ -4,6 +4,15 @@
 #include <utility>
 using namespace std;
 
+
+string red(const string& s)     { return "\e[31m" + s + "\e[0m"; }
+string green(const string& s)   { return "\e[32m" + s + "\e[0m"; }
+string yellow(const string& s)  { return "\e[33m" + s + "\e[0m"; }
+string blue(const string& s)    { return "\e[34m" + s + "\e[0m"; }
+string magenta(const string& s) { return "\e[35m" + s + "\e[0m"; }
+string cyan(const string& s)    { return "\e[36m" + s + "\e[0m"; }
+
+
 struct Result {
 	const string deducedTemplateArg;
 	const string rvalueRefSolvedAs;
@@ -44,10 +53,10 @@ Result forwardingFunction(T&& arg) {
 
 	string overloadCalled = overloadedFunction(forward<T>(arg));
 
-	cout << "Calling forwardingFunction(T&& arg) with " << arg.name << endl;
-	cout << "\tDeduced T = " << deducedTemplateArg << endl;
-	cout << "\tType of arg is T&& = " << deducedTemplateArg << " && = " << rvalueRefSolvedAs << endl;
-	cout << "\tForwarded to: overloadedFunction(" << overloadCalled << ")" << endl;
+	cout << "Calling forwardingFunction(" << cyan("T") << yellow("&&") << " arg) with " << blue(arg.name) << endl;
+	cout << "\tDeduced " << cyan("T") << " = " << cyan(deducedTemplateArg) << endl;
+	cout << "\tType of arg is " << cyan("T") << yellow("&&") << " = " << cyan(deducedTemplateArg) << " " << yellow("&&") << " = " << green(rvalueRefSolvedAs) << endl;
+	cout << "\tForwarded to: overloadedFunction(" << red(overloadCalled) << ")" << endl;
 	cout << endl;
 	return {deducedTemplateArg, rvalueRefSolvedAs, overloadCalled};
 }
