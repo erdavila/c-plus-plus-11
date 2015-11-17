@@ -23,11 +23,8 @@ bool operator==(const Result& lhs, const Result& rhs) {
 class C {
 public:
 	const string name;
-	C(const char* name) : name(name) {}
+	C(const string& name) : name(name) {}
 };
-
-string overloadedFunction(const C&) { return "const C&"; }
-string overloadedFunction(C&)       { return "C&"; }
 
 
 template <typename T> struct type;
@@ -37,6 +34,9 @@ template <typename T> struct type<T&&>     { static string name() { return type<
 template <typename T> struct type<const T> { static string name() { return "const " + type<T>::name(); } };
 
 
+string overloadedFunction(const C&) { return "const C&"; }
+string overloadedFunction(C&)       { return "C&"; }
+
 template <typename T>
 Result forwardingFunction(T&& arg) {
 	string deducedTemplateArg = type<T>::name();
@@ -44,7 +44,7 @@ Result forwardingFunction(T&& arg) {
 
 	string overloadCalled = overloadedFunction(forward<T>(arg));
 
-	cout << "Calling forwardingFunction(T&& arg) with: " << arg.name << endl;
+	cout << "Calling forwardingFunction(T&& arg) with " << arg.name << endl;
 	cout << "\tDeduced T = " << deducedTemplateArg << endl;
 	cout << "\tType of arg is T&& = " << deducedTemplateArg << " && = " << rvalueRefSolvedAs << endl;
 	cout << "\tForwarded to: overloadedFunction(" << overloadCalled << ")" << endl;
@@ -52,37 +52,44 @@ Result forwardingFunction(T&& arg) {
 	return {deducedTemplateArg, rvalueRefSolvedAs, overloadCalled};
 }
 
-C         func()           { static C c{"C returned-by-function"};         return      c ; }
-C&        funcRef()        { static C c{"C& returned-by-function"};        return      c ; }
-C&&       funcRVRef()      { static C c{"C&& returned-by-function"};       return move(c); }
-const C   funcConst()      { static C c{"const C returned-by-function"};   return      c ; }
-const C&  funcConstRef()   { static C c{"const C& returned-by-function"};  return      c ; }
-const C&& funcConstRVRef() { static C c{"const C&& returned-by-function"}; return move(c); }
+
+enum Category { LVALUE, RVALUE };
+
+template <typename T, Category CAT>
+T returns() {
+	static C c = type<T>::name() + " " + (CAT == LVALUE ? "lvalue" : "rvalue");
+	return static_cast<T>(c);
+}
 
 int main() {
-	C _var           = "C variable";         C         var           =      _var;
-	C _varRef        = "C& variable";        C&        varRef        =      _varRef;
-	C _varRVRef      = "C&& variable";       C&&       varRVRef      = move(_varRVRef);
-	C _varConst      = "const C variable";   const C   varConst      =      _varConst;
-	C _varConstRef   = "const C& variable";  const C&  varConstRef   =      _varConstRef;
-	C _varConstRVRef = "const C&& variable"; const C&& varConstRVRef = move(_varConstRVRef);
+	C                    lvalue = returns<C, LVALUE>();
+	C&              lref_lvalue = returns<C&, LVALUE>();
+	C&&             rref_lvalue = returns<C&&, LVALUE>();
+	const C        const_lvalue = returns<const C, LVALUE>();
+	const C&  const_lref_lvalue = returns<const C&, LVALUE>();
+	const C&& const_rref_lvalue = returns<const C&&, LVALUE>();
+
+	assert(forwardingFunction(lvalue)            == Result(      "C&",       "C&",       "C&"));
+	assert(forwardingFunction(lref_lvalue)       == Result(      "C&",       "C&",       "C&"));
+	assert(forwardingFunction(rref_lvalue)       == Result(      "C&",       "C&",       "C&"));
+	assert(forwardingFunction(const_lvalue)      == Result("const C&", "const C&", "const C&"));
+	assert(forwardingFunction(const_lref_lvalue) == Result("const C&", "const C&", "const C&"));
+	assert(forwardingFunction(const_rref_lvalue) == Result("const C&", "const C&", "const C&"));
 
 
-	assert(forwardingFunction(C("C literal")) == Result("C", "C&&", "const C&"));
+	#define            rvalue returns<C, RVALUE>()
+	#define       lref_rvalue returns<C&, RVALUE>()
+	#define       rref_rvalue returns<C&&, RVALUE>()
+	#define      const_rvalue returns<const C, RVALUE>()
+	#define const_lref_rvalue returns<const C&, RVALUE>()
+	#define const_rref_rvalue returns<const C&&, RVALUE>()
 
-	assert(forwardingFunction(var)           == Result(      "C&",       "C&",       "C&"));
-	assert(forwardingFunction(varRef)        == Result(      "C&",       "C&",       "C&"));
-	assert(forwardingFunction(varRVRef)      == Result(      "C&",       "C&",       "C&"));
-	assert(forwardingFunction(varConst)      == Result("const C&", "const C&", "const C&"));
-	assert(forwardingFunction(varConstRef)   == Result("const C&", "const C&", "const C&"));
-	assert(forwardingFunction(varConstRVRef) == Result("const C&", "const C&", "const C&"));
-
-	assert(forwardingFunction(func())           == Result(      "C" ,       "C&&", "const C&"));
-	assert(forwardingFunction(funcRef())        == Result(      "C&",       "C&" ,       "C&"));
-	assert(forwardingFunction(funcRVRef())      == Result(      "C" ,       "C&&", "const C&"));
-	assert(forwardingFunction(funcConst())      == Result("const C" , "const C&&", "const C&"));
-	assert(forwardingFunction(funcConstRef())   == Result("const C&", "const C&" , "const C&"));
-	assert(forwardingFunction(funcConstRVRef()) == Result("const C" , "const C&&", "const C&"));
+	assert(forwardingFunction(           rvalue) == Result(      "C" ,       "C&&", "const C&"));
+	assert(forwardingFunction(      lref_rvalue) == Result(      "C&",       "C&" ,       "C&"));
+	assert(forwardingFunction(      rref_rvalue) == Result(      "C" ,       "C&&", "const C&"));
+	assert(forwardingFunction(     const_rvalue) == Result("const C" , "const C&&", "const C&"));
+	assert(forwardingFunction(const_lref_rvalue) == Result("const C&", "const C&" , "const C&"));
+	assert(forwardingFunction(const_rref_rvalue) == Result("const C" , "const C&&", "const C&"));
 
 	cout << "OK" << endl;
 }
