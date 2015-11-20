@@ -584,6 +584,16 @@ namespace types {
 	}
 
 	namespace memberFunction {
+#if __clang__
+	/*
+	 * As of writing this, the installed version of libc++ is "1.0~svn199600-1".
+	 * It has some issue that prevents std::function to correctly work with
+	 * cv-qualified member functions.
+	 * See http://stackoverflow.com/q/33838807/747919
+	 */
+# define IGNORE_CV_QUALIFIED_MEMBERS
+#endif
+
 		struct Class {
 			auto member(int i, char c, bool b) { return function(i, c, b); }
 			auto memberConst(int i, char c, bool b) const { return function(i, c, b); }
@@ -602,6 +612,7 @@ namespace types {
 			assert(result == "-7!");
 		}
 
+#ifndef IGNORE_CV_QUALIFIED_MEMBERS
 		void testMemberConst() {
 			auto curriedFunction = curry::curry(&Class::memberConst);
 			auto curriedFunction2 = curriedFunction(instance);
@@ -628,12 +639,15 @@ namespace types {
 			auto result = curriedFunction4(true);
 			assert(result == "-7!");
 		}
+#endif
 
 		void test() {
 			testMember();
+#ifndef IGNORE_CV_QUALIFIED_MEMBERS
 			testMemberConst();
 			testMemberVolatile();
 			testMemberConstVolatile();
+#endif
 		}
 	}
 

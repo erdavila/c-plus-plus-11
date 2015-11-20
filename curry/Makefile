@@ -1,23 +1,20 @@
 MAIN_TARGET := curry
-_UNAME := $(shell uname -o)
-
-ifeq ($(_UNAME), Cygwin)
-  EXT := .exe
-else
-  EXT :=
-endif
-
-EXE := $(MAIN_TARGET)$(EXT)
+EXE := $(MAIN_TARGET)
 
 
 .PHONY: all
 all: $(EXE)
 
+.PHONY: test
+test: $(EXE)
+	./$(EXE)
+	@echo OK
+
 .PHONY: clean
 clean:
-	rm -f $(EXE)
+	$(RM) $(EXE)
 
 $(EXE): $(MAIN_TARGET).hpp
 
 $(EXE): $(MAIN_TARGET).cpp
-	g++ -Wall -std=c++1y $< -o $@
+	$(CXX) -Wall -std=c++1y $< -o $@

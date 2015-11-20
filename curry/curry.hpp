@@ -2,119 +2,127 @@
 #define __CURRY_HPP__
 
 #include <functional>
+#include <tuple>
 #include <type_traits>
+#include <utility>
 
 namespace curry {
 
-	template <typename, typename>
-	class BoundFunction;
+	template <size_t N, typename Tuple, typename... Types>
+	struct tuple_from_types_impl;
 
-	template <typename Target, typename Return, typename BoundArg, typename LastArg>
-	class BoundFunction<Target, Return(BoundArg, LastArg)> {
-	private:
-		// Appliable to 2 arguments of types (BoundArg, LastArg)
-		Target target;
+	template <size_t N, typename... TupleTypes, typename Type, typename... Types>
+	struct tuple_from_types_impl<N, std::tuple<TupleTypes...>, Type, Types...>
+		: tuple_from_types_impl<N - 1, std::tuple<TupleTypes..., Type>, Types...>
+	{};
 
-		BoundArg boundArg;
-	public:
-		BoundFunction(const Target& target, BoundArg boundArg)
-			: target(target), boundArg(boundArg)
-			{}
-
-		// Application to 1 argument
-		Return operator()(LastArg lastArg) const {
-			return target(boundArg, lastArg);
-		}
+	template <typename... TupleTypes, typename Type, typename... Types>
+	struct tuple_from_types_impl<0, std::tuple<TupleTypes...>, Type, Types...> {
+		using type = std::tuple<TupleTypes...>;
 	};
 
-	template <typename Target, typename Return, typename BoundArg, typename NextArg, typename AfterNextArg, typename... RestArgs>
-	class BoundFunction<Target, Return(BoundArg, NextArg, AfterNextArg, RestArgs...)> {
-	private:
-		using This = BoundFunction<Target, Return(BoundArg, NextArg, AfterNextArg, RestArgs...)>;
-
-		// Appliable to 3..N arguments of types (BoundArg, NextArg, AfterNextArg, RestArgs...)
-		Target target;
-
-		BoundArg boundArg;
-	public:
-		BoundFunction(const Target& target, BoundArg boundArg)
-			: target(target), boundArg(boundArg)
-			{}
-
-		// Application to 1 argument
-		auto operator()(NextArg nextArg) const {
-			return BoundFunction<This, Return(NextArg, AfterNextArg, RestArgs...)>(*this, nextArg);
-		}
-
-		// Application to 2..N-2 arguments
-		template <typename... OtherArgs>
-		auto operator()(NextArg nextArg, AfterNextArg afterNextArg, OtherArgs&&... otherArgs) const
-			-> typename std::enable_if<sizeof...(OtherArgs) < sizeof...(RestArgs),
-			     decltype(this->operator()(nextArg)(afterNextArg, std::forward<OtherArgs>(otherArgs)...))
-			   >::type
-		{
-			return        this->operator()(nextArg)(afterNextArg, std::forward<OtherArgs>(otherArgs)...);
-		}
-
-		// Application to N-1 arguments
-		Return operator()(NextArg nextArg, AfterNextArg afterNextArg, RestArgs... restArgs) const {
-			return target(boundArg, nextArg, afterNextArg, restArgs...);
-		}
+	template <typename... TupleTypes, typename... Types>
+	struct tuple_from_types_impl<0, std::tuple<TupleTypes...>, Types...> {
+		using type = std::tuple<TupleTypes...>;
 	};
 
+	template <size_t N, typename... Types>
+	using tuple_from_types = typename tuple_from_types_impl<N, std::tuple<>, Types...>::type;
 
-	template <typename>
+
+	template <bool AllArgsProvided>
+	class Applicator;
+
+
+	template <typename Signature, size_t BoundArgsCount = 0>
 	class CurriedFunction;
 
-	template <typename Return, typename Arg>
-	class CurriedFunction<Return(Arg)> {
+	template <typename Return, typename... Args, size_t BoundArgsCount>
+	class CurriedFunction<Return(Args...), BoundArgsCount> {
 	private:
-		using Signature = Return(Arg);
+		static_assert(BoundArgsCount < sizeof...(Args), "Too many bound arguments");
+
+		using Signature = Return(Args...);
 		using Function = std::function<Signature>;
+		using BoundArgsTuple = tuple_from_types<BoundArgsCount, Args...>;
 
-		// Appliable to 1 argument of type (Arg)
-		Function target;
+		Function function;
+		BoundArgsTuple boundArgs;
+
+		template <typename... GivenArgs>
+		struct bound_args_with {
+			static constexpr size_t count = BoundArgsCount + sizeof...(GivenArgs);
+			static constexpr bool satisfies = (count >= sizeof...(Args));
+		};
+
+		template <bool> friend class Applicator;
+
 	public:
-		explicit CurriedFunction(const Function& function) : target(function) {}
-		explicit CurriedFunction(Function& function) : target(std::move(function)) {}
+		explicit CurriedFunction(const Function& function, const BoundArgsTuple& boundArgs = std::tuple<>())
+			: function(function), boundArgs(boundArgs)
+		{}
 
-		// Application to 1 argument
-		Return operator()(const Arg& arg) const {
-			return target(arg);
+		template <typename... GivenArgs>
+		typename std::conditional<bound_args_with<GivenArgs...>::satisfies,
+					Return,
+					CurriedFunction<Signature, bound_args_with<GivenArgs...>::count>
+			>::type
+		operator()(GivenArgs&&... givenArgs) {
+			static_assert(bound_args_with<GivenArgs...>::count <= sizeof...(Args), "Too many arguments");
+
+			constexpr bool allArgsProvided = bound_args_with<GivenArgs...>::satisfies;
+			return Applicator<allArgsProvided>::apply(*this, std::forward<GivenArgs>(givenArgs)...);
 		}
 	};
 
-	template <typename Return, typename Arg1, typename Arg2, typename... RestArgs>
-	class CurriedFunction<Return(Arg1, Arg2, RestArgs...)> {
+
+	template <size_t...> class index_sequence {};
+
+	template <size_t N, typename Indexes>
+	struct make_index_sequence_impl;
+
+	template <size_t... Indexes>
+	struct make_index_sequence_impl<0, index_sequence<Indexes...>> {
+		using type = index_sequence<Indexes...>;
+	};
+
+	template <size_t N, size_t... Indexes>
+	struct make_index_sequence_impl<N, index_sequence<Indexes...>>
+		: make_index_sequence_impl<N - 1, index_sequence<N - 1, Indexes...>>
+	{};
+
+	template <size_t N>
+	using make_index_sequence = typename make_index_sequence_impl<N, index_sequence<>>::type;
+
+
+	template <>
+	class Applicator<true> {
 	private:
-		using Signature = Return(Arg1, Arg2, RestArgs...);
-		using Function = std::function<Signature>;
-		using This = CurriedFunction<Signature>;
+		template <typename Function, size_t... Indexes, typename BoundArgsTuple, typename... GivenArgs>
+		static
+		typename Function::result_type
+		apply(const Function& function, index_sequence<Indexes...>, const BoundArgsTuple& boundArgs, GivenArgs&&... givenArgs) {
+			return function(std::get<Indexes>(boundArgs)..., std::forward<GivenArgs>(givenArgs)...);
+		}
 
-		// Appliable to 2..N arguments of types (Arg1, Arg2, RestArgs...)
-		Function target;
 	public:
-		explicit CurriedFunction(const Function& function) : target(function) {}
-		explicit CurriedFunction(Function& function) : target(std::move(function)) {}
-
-		// Application to 1 argument
-		auto operator()(Arg1 arg1) const {
-			return BoundFunction<This, Signature>(*this, arg1);
+		template <typename Return, typename... Args, size_t BoundArgsCount, typename... GivenArgs>
+		static Return apply(const CurriedFunction<Return(Args...), BoundArgsCount>& cf, GivenArgs&&... givenArgs) {
+			return apply(cf.function, make_index_sequence<BoundArgsCount>(), cf.boundArgs, std::forward<GivenArgs>(givenArgs)...);
 		}
+	};
 
-		// Application to 2..N-1 arguments
-		template <typename... OtherArgs>
-		auto operator()(Arg1 arg1, Arg2 arg2, OtherArgs&&... otherArgs)
-			-> typename std::enable_if<sizeof...(OtherArgs) < sizeof...(RestArgs),
-			     decltype(this->operator()(arg1)(arg2, std::forward<OtherArgs>(otherArgs)...))
-			   >::type
-		{
-			return        this->operator()(arg1)(arg2, std::forward<OtherArgs>(otherArgs)...);
-		}
-
-		// Application to N arguments
-		Return operator()(Arg1 arg1, Arg2 arg2, RestArgs... restArgs) const {
-			return target(arg1, arg2, restArgs...);
+	template <>
+	class Applicator<false> {
+	public:
+		template <typename Signature, size_t BoundArgsCount, typename... GivenArgs>
+		static auto apply(const CurriedFunction<Signature, BoundArgsCount>& cf, GivenArgs&&... givenArgs) {
+			enum { NewBoundArgsCount = BoundArgsCount + sizeof...(GivenArgs) };
+			using GivenArgsTuple = std::tuple<GivenArgs...>;
+			return CurriedFunction<Signature, NewBoundArgsCount>(
+					cf.function,
+					std::tuple_cat(cf.boundArgs, GivenArgsTuple(std::forward<GivenArgs>(givenArgs)...))
+			);
 		}
 	};
 
