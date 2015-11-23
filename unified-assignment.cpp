@@ -3,75 +3,161 @@
 using namespace std;
 
 
-struct Stats;
-Stats* stats = nullptr;
+class TracerBase {
+protected:
+	static int enabled;
 
-struct Stats {
-	Stats(const char* class_, const char* function) {
-		cout << "=== " << class_ << ' ' << function << endl;
-		stats = this;
+	string name;
+
+	TracerBase(const string& name) : name(name) {}
+
+	~TracerBase() {
+		--enabled;
+		doLog("END " + name);
+		if(enabled == 0) {
+			doLog(repeat("=", 80));
+		}
 	}
-	~Stats() {
-		stats = nullptr;
-		cout << endl;
+
+	static void doLog(const string& str = "") {
+		string indent = repeat("  ", enabled);
+		cout << indent << str << endl;
 	}
-	void defaultConstructor() { cout << "Default constructor" << endl; }
-	void copyConstructor() { cout << "Copy constructor" << endl; }
-	void moveConstructor() { cout << "Move constructor" << endl; }
-	void copyAssignment() { cout << "Copy assignment" << endl; }
-	void moveAssignment() { cout << "Move assignment" << endl; }
-	void unifiedAssignment() { cout << "Unified assignment" << endl; }
+
+	static string repeat(const string& s, int n) {
+		string str;
+		for(int i = 0; i < n; ++i) {
+			str += s;
+		}
+		return str;
+	}
+};
+int TracerBase::enabled = 0;
+
+
+template <typename C>
+class Tracer : TracerBase {
+public:
+	Tracer(const string& function, const string& args = "")
+		: TracerBase(method(function, args))
+	{
+		doLog("BEGIN " + name);
+		++enabled;
+	}
+
+	static void trace(const string& function, const string& args = "") {
+		if(enabled > 0) {
+			doLog(method(function, args));
+		}
+	}
+
+private:
+	static string method(const string& function, const string& args) {
+		string m = C::NAME + "::" + function + "(" + args + ")";
+		if(function == C::NAME) {
+			m += "  // Object is constructed!";
+		}
+		return m;
+	}
 };
 
 
-template <typename T>
-void assignFromVariable() {
-	Stats s(T::NAME, "assignFromVariable");
-	T v1, v2;
-	v1 = v2;
-}
+template <typename T = void>
+class Base {
+public:
+	static void assignFromLvalue() {
+		T v1, v2;
+		Tracer t(__FUNCTION__);
+		v1 = v2;
+	}
 
+	static void assignFromRvalue() {
+		T v1, v2;
+		Tracer t(__FUNCTION__);
+		v1 = id(v2);
+	}
 
-template <typename T>
-T function(T& object) {
-	return true ? object : object;
-}
+protected:
+	typedef ::Tracer<T> Tracer;
 
-template <typename T>
-void assignFromTemp() {
-	Stats s(T::NAME, "assignFromTemp");
-	T v1, v2;
-	v1 = function(v2);
-}
+	Base()            { Tracer::trace(T::NAME); }
+	Base(const Base&) { Tracer::trace(T::NAME, "const " + T::NAME + "&"); }
+#if __cplusplus >= 201103L
+	Base(Base&&)      { Tracer::trace(T::NAME, T::NAME + "&&"); }
+#endif
 
+	~Base() { Tracer::trace("~" + T::NAME); }
 
-struct Separated {
-	Separated() { stats->defaultConstructor(); }
-	Separated(const Separated&) { stats->copyConstructor(); }
-	Separated(Separated&&) { stats->moveConstructor(); }
-	
-	Separated& operator=(const Separated&) { stats->copyAssignment(); return *this; }
-	Separated& operator=(Separated&&) { stats->moveAssignment(); return *this; }
-	
-	static const char* const NAME;
+	void swap(Base& s) {
+		Tracer::trace(__FUNCTION__, T::NAME + "&");
+	}
+
+private:
+	static T id(T& v) {
+		return true ? v : v;
+	}
 };
-const char* const Separated::NAME = "Separated";
 
-struct Unified {
-	Unified() { stats->defaultConstructor(); }
-	Unified(const Unified&) { stats->copyConstructor(); }
-	Unified(Unified&&) { stats->moveConstructor(); }
-	
-	Unified& operator=(Unified) { stats->unifiedAssignment(); return *this; }
-	
-	static const char* const NAME;
+
+//#define SEPARATED_HAS_MOVE_ASSIGNMENT
+
+class Separated : public Base<Separated> {
+public:
+	static const string NAME;
+
+	Separated()                   : Base<Separated>() {}
+	Separated(const Separated& s) : Base<Separated>(s) {}
+#if __cplusplus >= 201103L
+	Separated(Separated&& s)      : Base<Separated>(std::move(s)) {}
+#endif
+
+	Separated& operator=(const Separated& s) {
+		Tracer t(__FUNCTION__, "const Separated&");
+		if(!sameAddress(s)) {
+			Separated(s).swap(*this);
+		}
+		return *this;
+	}
+
+#if __cplusplus >= 201103L && defined(SEPARATED_HAS_MOVE_ASSIGNMENT)
+	Separated& operator=(Separated&& s) & {
+		Tracer t(__FUNCTION__, "Separated&&");
+		s.swap(*this);
+		return *this;
+	}
+#endif
+
+private:
+	bool sameAddress(const Separated& s) const {
+		Tracer::trace(__FUNCTION__, "const Separated&");
+		return false;
+	}
 };
-const char* const Unified::NAME = "Unified";
+const string Separated::NAME = "Separated";
+
+
+class Unified : public Base<Unified> {
+public:
+	static const string NAME;
+
+	Unified()                 : Base<Unified>() {}
+	Unified(const Unified& u) : Base<Unified>(u) {}
+#if __cplusplus >= 201103L
+	Unified(Unified&& u)      : Base<Unified>(std::move(u)) {}
+#endif
+
+	Unified& operator=(Unified u) {
+		Tracer t(__FUNCTION__, "Unified u");
+		u.swap(*this);
+		return *this;
+	}
+};
+const string Unified::NAME = "Unified";
 
 
 int main() {
-	assignFromVariable<Separated>();
-	assignFromTemp<Separated>();
-	assignFromVariable<Unified>();
-	assignFromTemp<Unified>();
+	Separated::assignFromLvalue();
+	Unified::assignFromLvalue();
+	Separated::assignFromRvalue();
+	Unified::assignFromRvalue();
 }
