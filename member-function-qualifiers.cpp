@@ -35,9 +35,9 @@ struct CVQualifications {
 
 void cv() {
 	               CVQualifications          noncv_instance;
-	const          CVQualifications          const_instance;
+	const          CVQualifications          const_instance = noncv_instance;
 	      volatile CVQualifications       volatile_instance;
-	const volatile CVQualifications const_volatile_instance;
+	const volatile CVQualifications const_volatile_instance = noncv_instance;
 
 	assert(         noncv_instance.noncv_not_overloaded() == NONCV);
 	//assert(         const_instance.noncv_not_overloaded() == NONCV);  // Const          instance can call only const          methods
